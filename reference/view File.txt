@@ -1,0 +1,71 @@
+Create View StudentFeeView as SELECT info.Admission_Id , info.feegrpid, info.Name, Cls.standard, Cls.Section, Cls.Class_id, Fee.FeeType, Map.FeeGrpmapId
+FROM Student_Info1 info, Tbl_Class cls, FeeGroupmapping Map, Fee_Type Fee
+WHERE info.Class_Id = cls.Class_Id
+AND Cls.FeeGrpId = Map.FeeGrpId
+AND Map.FeeTypeId = Fee.FeeTypeId
+
+create view studentlist as SELECT tbl_class.CLASS_ID, tbl_class.Standard, tbl_class.Section, student_info1.name, student_info1.Admission_id
+FROM student_info1, tbl_class
+WHERE tbl_class.CLASS_ID = student_info1.CLASS_ID
+
+SELECT feegroupmapping.feeamount, feeheads.feehead
+FROM `feegroupmapping`
+LEFT JOIN feeheads ON feegroupmapping.FeeHeadId = feeheads.feeheadId
+WHERE `FeeGrpID` = '2'
+UNION SELECT SUM( feegroupmapping.feeamount ) AS amt, feegroupmapping.feegrpmapid
+FROM `feegroupmapping`
+WHERE `FeeGrpID` = '2'
+
+////Fees STructure//////////
+SELECT feegrpid,
+MAX( IF(feeheadId=1,feeamount ,'0.00') ) AS '#1',
+MAX( IF(feeheadId-2,feeamount ,'0.00') ) AS '#2',
+MAX( IF(feeheadId=3,feeamount ,'0.00') ) AS '#3',
+MAX( IF(feeheadId=4,feeamount ,'0.00') ) AS '#1',
+MAX( IF(feeheadId-5,feeamount ,'0.00') ) AS '#2',
+MAX( IF(feeheadId=6,feeamount ,'0.00') ) AS '#3',
+MAX( IF(feeheadId=7,feeamount ,'0.00') ) AS '#1',
+MAX( IF(feeheadId-8,feeamount ,'0.00') ) AS '#2',
+MAX( IF(feeheadId=9,feeamount ,'0.00') ) AS '#3',
+MAX( IF(feeheadId=10,feeamount ,'0.00') ) AS '#1'
+FROM v_fees
+GROUP BY feegrpid
+
+/////Implode function/////////////////////
+$classsex = array();
+$selclass = "SELECT *, CLASS_ID as id, CONCAT(Standard,' - ',Section) as text FROM tbl_class WHERE Status='1' order by CLASS_ID";	
+	$selclassexe = mysql_query($selclass);
+		while($row = mysql_fetch_array($selclassexe)){
+	$classsex[] = $row['text'];
+	}
+ //$classsex;
+$cs = implode("\n",$classsex);
+
+///////////////////////////////////////
+//UPDATE ROLL NUMBER BY CLASS
+UPDATE student_info1 SET student_info1.rollNumber= (@rn := coalesce(@rn, 0) + 1) WHERE `CLASS_ID`='2'  order by NAME
+
+///////////////////////////////////////////
+
+SET @sql = NULL;
+SELECT
+  GROUP_CONCAT(DISTINCT
+    CONCAT(
+      'MAX(IF(Section = ''',
+      Section,
+      ''', countstu, 0)) AS ',
+      Section
+    )
+  ) INTO @sql
+FROM  v_countstu;
+SET @sql = CONCAT('SELECT Standard, ', @sql, ' FROM  v_countstu GROUP BY Standard');
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+////////////////////////////////////////////////////////////
+
+
+
+
